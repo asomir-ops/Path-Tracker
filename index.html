@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PATH Train Tracker - Newark to WTC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        pathRed: '#E03A3E',
+                        pathBlue: '#00539B',
+                        pathGray: '#1F2937',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .pulse-live {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .4; }
+        }
+        .train-move {
+            transition: all 1s linear;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col font-sans">
+
+    <!-- Header -->
+    <header class="bg-gray-800 border-b border-gray-700 p-4 sticky top-0 z-50 shadow-md">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-red-600 text-white font-bold p-2 rounded-lg flex items-center justify-center w-10 h-10 shadow">
+                    PATH
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">NWK &rarr; WTC Tracker</h1>
+                    <p class="text-xs text-gray-400">Newark to World Trade Center Line</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span id="liveStatus" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-900 text-green-300">
+                    <span class="w-2 h-2 mr-1.5 bg-green-400 rounded-full pulse-live"></span> Live Simulation
+                </span>
+                <button id="alertToggleBtn" onclick="toggleDelay()" class="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded text-gray-300 transition">
+                    Simulate Delay
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-6xl w-full mx-auto p-4 space-y-6">
+
+        <!-- Banner Alert (Hidden by default) -->
+        <div id="alertBanner" class="hidden bg-amber-900/80 border-l-4 border-amber-500 p-4 rounded text-amber-200 text-sm flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-triangle-exclamation text-amber-400 text-lg"></i>
+                <span><strong>Service Advisory:</strong> Minor signal delays between Journal Square and Exchange Place.</span>
+            </div>
+            <button onclick="toggleDelay()" class="text-amber-400 hover:text-white font-bold">Dismiss</button>
+        </div>
+
+        <!-- Interactive Map Track -->
+        <section class="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-route text-red-500"></i> Route Diagram & Live Trains
+                </h2>
+                <div class="text-xs text-gray-400 flex gap-4">
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-red-500 rounded-full inline-block"></span> Eastbound (to WTC)</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 bg-blue-500 rounded-full inline-block"></span> Westbound (to NWK)</span>
+                </div>
+            </div>
+
+            <div class="relative py-8 px-4 overflow-x-auto">
+                <!-- Track Line -->
+                <div class="absolute top-1/2 left-8 right-8 h-2 bg-gray-600 -translate-y-1/2 rounded"></div>
+
+                <!-- Stations Container -->
+                <div class="relative flex justify-between items-center min-w-[600px] px-4">
+                    
+                    <!-- Station 1: Newark -->
+                    <div class="flex flex-col items-center z-10 cursor-pointer group" onclick="selectStation('NWK')">
+                        <div class="w-6 h-6 bg-red-600 rounded-full border-4 border-gray-800 group-hover:scale-125 transition"></div>
+                        <span class="mt-2 text-xs font-bold text-gray-200">Newark</span>
+                        <span class="text-[10px] text-gray-400">Penn Sta</span>
+                    </div>
+
+                    <!-- Station 2: Harrison -->
+                    <div class="flex flex-col items-center z-10 cursor-pointer group" onclick="selectStation('HAR')">
+                        <div class="w-5 h-5 bg-gray-400 rounded-full border-4 border-gray-800 group-hover:scale-125 transition"></div>
+                        <span class="mt-2 text-xs font-semibold text-gray-300">Harrison</span>
+                        <span class="text-[10px] text-gray-500">HAR</span>
+                    </div>
+
+                    <!-- Station 3: JSQ -->
+                    <div class="flex flex-col items-center z-10 cursor-pointer group" onclick="selectStation('JSQ')">
+                        <div class="w-6 h-6 bg-red-600 rounded-full border-4 border-gray-800 group-hover:scale-125 transition"></div>
+                        <span class="mt-2 text-xs font-bold text-gray-200">Journal Sq</span>
+                        <span class="text-[10px] text-gray-400">JSQ Hub</span>
+                    </div>
+
+                    <!-- Station 4: Grove St -->
+                    <div class="flex flex-col items-center z-10 cursor-pointer group" onclick="selectStation('GRV')">
+                        <div class="w-5 h-5 bg-gray-400 rounded-full border-4 border-gray-800 group-hover:scale-125 transition"></div>
+                        <span class="mt-2 text-xs font-semibold text-gray-300">Grove St</span>
+                        <span class="text-[10px] text-gray-500">JC Downtown</span>
+                    </div>
+
+                    <!-- Station 5: Exchange Pl -->
+                    <div class="flex flex-col items-center z-10 cursor-pointer group" onclick="selectStation('EXP')">
+                        <div class="w-5 h-5 bg-gray-400 rounded-full border-4 border-gray-800 group-hover:scale-125 transition"></div>
+                        <span class="mt-2 text-xs font-semibold text-gray-300">Exchange Pl</span>
+                        <span class="text-[10px] text-gray-500">Waterfront</span>
+                    </div>
+
+                    <!-- Station 6: WTC -->
+                    <div class="flex flex-col items-center z-10 cursor-pointer group" onclick="selectStation('WTC')">
+                        <div class="w-6 h-6 bg-red-600 rounded-full border-4 border-gray-800 group-hover:scale-125 transition"></div>
+                        <span class="mt-2 text-xs font-bold text-gray-200">World Trade</span>
+                        <span class="text-[10px] text-gray-400">NYC Hub</span>
+                    </div>
+
+                </div>
+
+                <!-- Live Animated Train Marker (Simulated) -->
+                <div id="animatedTrain" class="absolute top-1/2 -mt-7 left-[20%] transition-all duration-1000 ease-in-out text-red-500 text-lg">
+                    <i class="fa-solid fa-train-subway bg-gray-900 p-1.5 rounded-full border border-red-500 shadow-lg"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Departures & Station Details Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <!-- Next Trains Panel -->
+            <div class="md:col-span-2 bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-lg space-y-4">
+                <div class="flex justify-between items-center border-b border-gray-700 pb-3">
+                    <div>
+                        <h3 class="font-bold text-lg text-white" id="selectedStationTitle">Newark Penn Station</h3>
+                        <p class="text-xs text-gray-400">Live Departures Schedule</p>
+                    </div>
+                    <div class="flex bg-gray-700 p-1 rounded-lg text-xs">
+                        <button id="btnEastbound" onclick="setDirection('east')" class="px-3 py-1 rounded bg-red-600 text-white font-medium shadow">To WTC</button>
+                        <button id="btnWestbound" onclick="setDirection('west')" class="px-3 py-1 rounded text-gray-300 hover:text-white font-medium">To Newark</button>
+                    </div>
+                </div>
+
+                <!-- Train List -->
+                <div id="trainList" class="space-y-3">
+                    <!-- Dynamic train cards inserted here -->
+                </div>
+            </div>
+
+            <!-- Station Info Panel -->
+            <div class="bg-gray-800 p-5 rounded-xl border border-gray-700 shadow-lg flex flex-col justify-between">
+                <div>
+                    <h3 class="font-bold text-lg text-white mb-3 border-b border-gray-700 pb-2">Station Info</h3>
+                    <div class="space-y-3 text-sm text-gray-300">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Station Code:</span>
+                            <span id="stCode" class="font-mono font-bold text-red-400">NWK</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Accessibility:</span>
+                            <span id="stAccess" class="text-green-400 font-semibold"><i class="fa-solid fa-wheelchair"></i> Accessible</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Transfers:</span>
+                            <span id="stTransfers" class="text-right text-xs text-gray-200">NJ Transit, Amtrak, Light Rail</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Zone:</span>
+                            <span>New Jersey</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 bg-gray-900 p-3 rounded-lg border border-gray-700">
+                    <p class="text-xs text-gray-400 mb-1"><i class="fa-solid fa-circle-info text-blue-400 mr-1"></i> PATH Fare Information</p>
+                    <p class="text-sm font-semibold text-white">$2.75 per trip <span class="text-xs font-normal text-gray-400">(TCMC / SmartLink)</span></p>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 border-t border-gray-700 py-4 text-center text-xs text-gray-500">
+        <p>PATH Newark to WTC Tracker App • Web App Ready for Mobile</p>
+    </footer>
+
+    <script>
+        const stations = {
+            'NWK': { name: 'Newark Penn Station', code: 'NWK', access: 'Accessible', transfers: 'NJ Transit, Amtrak, Newark Light Rail', pos: 5 },
+            'HAR': { name: 'Harrison Station', code: 'HAR', access: 'Accessible', transfers: 'Local Buses', pos: 22 },
+            'JSQ': { name: 'Journal Square', code: 'JSQ', access: 'Accessible', transfers: 'JSQ-33rd St Line, Bus Terminal', pos: 45 },
+            'GRV': { name: 'Grove Street', code: 'GRV', access: 'Accessible', transfers: '33rd St Line (Via JSQ)', pos: 65 },
+            'EXP': { name: 'Exchange Place', code: 'EXP', access: 'Accessible', transfers: 'Hudson-Bergen Light Rail, Ferries', pos: 80 },
+            'WTC': { name: 'World Trade Center', code: 'WTC', access: 'Accessible', transfers: 'Subway (A, C, E, 1, R, W, N, Z, 2, 3)', pos: 95 }
+        };
+
+        let currentStation = 'NWK';
+        let currentDirection = 'east';
+        let isDelayed = false;
+
+        function renderDepartures() {
+            const list = document.getElementById('trainList');
+            list.innerHTML = '';
+
+            // Generate realistic mock schedules
+            const now = new Date();
+            const trainTimes = [3, 11, 22, 35];
+
+            trainTimes.forEach((mins, idx) => {
+                const depTime = new Date(now.getTime() + (mins + (isDelayed ? 4 : 0)) * 60000);
+                const timeStr = depTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                
+                const dest = currentDirection === 'east' ? 'World Trade Center' : 'Newark Penn Station';
+                const cars = idx % 2 === 0 ? '8 Cars' : '9 Cars';
+                const crowded = idx === 0 ? 'Moderate' : 'Low';
+                const crowdedColor = idx === 0 ? 'text-amber-400' : 'text-green-400';
+
+                const card = document.createElement('div');
+                card.className = "bg-gray-900 p-4 rounded-lg border border-gray-700 flex justify-between items-center hover:border-red-500 transition";
+                card.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="text-2xl text-red-500"><i class="fa-solid fa-train"></i></div>
+                        <div>
+                            <div class="font-bold text-white text-base">${dest}</div>
+                            <div class="text-xs text-gray-400 flex items-center gap-2">
+                                <span>${cars}</span> • 
+                                <span class="${crowdedColor}"><i class="fa-solid fa-users text-[10px]"></i> ${crowded} occupancy</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xl font-extrabold text-white">${mins + (isDelayed ? 4 : 0)} <span class="text-xs font-normal text-gray-400">min</span></div>
+                        <div class="text-xs text-gray-400">${timeStr}</div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function selectStation(code) {
+            currentStation = code;
+            const st = stations[code];
+            document.getElementById('selectedStationTitle').innerText = st.name;
+            document.getElementById('stCode').innerText = st.code;
+            document.getElementById('stAccess').innerText = st.access;
+            document.getElementById('stTransfers').innerText = st.transfers;
+
+            // Move animated train marker to station position
+            document.getElementById('animatedTrain').style.left = `${st.pos}%`;
+
+            renderDepartures();
+        }
+
+        function setDirection(dir) {
+            currentDirection = dir;
+            const btnEast = document.getElementById('btnEastbound');
+            const btnWest = document.getElementById('btnWestbound');
+
+            if (dir === 'east') {
+                btnEast.className = "px-3 py-1 rounded bg-red-600 text-white font-medium shadow";
+                btnWest.className = "px-3 py-1 rounded text-gray-300 hover:text-white font-medium";
+            } else {
+                btnWest.className = "px-3 py-1 rounded bg-blue-600 text-white font-medium shadow";
+                btnEast.className = "px-3 py-1 rounded text-gray-300 hover:text-white font-medium";
+            }
+            renderDepartures();
+        }
+
+        function toggleDelay() {
+            isDelayed = !isDelayed;
+            const alertBanner = document.getElementById('alertBanner');
+            const alertBtn = document.getElementById('alertToggleBtn');
+
+            if (isDelayed) {
+                alertBanner.classList.remove('hidden');
+                alertBtn.classList.add('bg-amber-600', 'text-white');
+                alertBtn.innerText = 'Clear Delay';
+            } else {
+                alertBanner.classList.add('hidden');
+                alertBtn.classList.remove('bg-amber-600', 'text-white');
+                alertBtn.innerText = 'Simulate Delay';
+            }
+            renderDepartures();
+        }
+
+        // Initialize
+        selectStation('NWK');
+    </script>
+</body>
+</html>
